@@ -1,0 +1,926 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Rapport d'Absenteisme — Upload Excel</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --card-bg: #ffffff;
+        --muted: #666;
+        --accent-1: #60a5fa;
+        --accent-2: #06b6d4;
+      }
+      html,
+      body {
+        height: 100%;
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          "Helvetica Neue",
+          Arial;
+      }
+      body {
+        background: #f6f7fb;
+        padding: 28px;
+      }
+      h1 {
+        font-size: 1.5rem;
+        margin-bottom: 18px;
+        color: #111;
+      }
+      .card {
+        background: var(--card-bg);
+        border: 1px solid #e6e9ef;
+        padding: 16px;
+        border-radius: 10px;
+        box-shadow: 0 6px 20px rgba(16, 24, 40, 0.04);
+        margin-bottom: 12px;
+      }
+      .controls {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-top: 10px;
+      }
+      .controls input[type="text"] {
+        flex: 1;
+        min-width: 220px;
+      }
+      .small {
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+      .upload-zone {
+        margin-top: 10px;
+        border: 2px dashed #cfd7e6;
+        border-radius: 14px;
+        background: linear-gradient(180deg, #fbfdff, #f7f9ff);
+        padding: 22px 16px;
+        text-align: center;
+        cursor: pointer;
+        transition:
+          border-color 0.2s ease,
+          transform 0.2s ease,
+          box-shadow 0.2s ease,
+          background 0.2s ease;
+      }
+      .upload-zone:hover {
+        border-color: #8fb3ff;
+        transform: translateY(-1px);
+        box-shadow: 0 10px 26px rgba(96, 165, 250, 0.14);
+      }
+      .upload-zone.dragover {
+        border-color: #4f8df7;
+        background: linear-gradient(180deg, #f5f9ff, #eef5ff);
+        box-shadow: 0 0 0 4px rgba(79, 141, 247, 0.14);
+      }
+      .upload-zone.loading {
+        cursor: progress;
+        pointer-events: none;
+        opacity: 0.92;
+      }
+      .upload-icon {
+        font-size: 1.5rem;
+        color: #4f8df7;
+        margin-bottom: 8px;
+      }
+      .upload-title {
+        font-weight: 600;
+        color: #1f2937;
+      }
+      .upload-subtitle {
+        margin-top: 4px;
+        font-size: 0.9rem;
+        color: #6b7280;
+      }
+      .upload-btn {
+        margin-top: 10px;
+        display: inline-block;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: #111827;
+        color: #fff;
+        font-size: 0.85rem;
+        transition:
+          background-color 0.2s ease,
+          box-shadow 0.2s ease,
+          transform 0.2s ease;
+      }
+      .upload-zone:hover .upload-btn,
+      .upload-zone:focus-within .upload-btn {
+        background: #2563eb;
+        box-shadow: 0 6px 16px rgba(37, 99, 235, 0.28);
+        transform: translateY(-1px);
+      }
+      .upload-spinner {
+        display: none;
+        width: 18px;
+        height: 18px;
+        margin-top: 10px;
+        border: 2px solid #bfdbfe;
+        border-top-color: #2563eb;
+        border-radius: 50%;
+        animation: upload-spin 0.7s linear infinite;
+      }
+      .upload-zone.loading .upload-spinner {
+        display: inline-block;
+      }
+      @keyframes upload-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      #fileInput {
+        display: none;
+      }
+      .file-meta {
+        margin-top: 10px;
+        font-size: 0.85rem;
+        color: #475569;
+      }
+      .table-wrap {
+        overflow: auto;
+        border-radius: 8px;
+        border: 1px solid #eef2f6;
+        background: #fff;
+        padding: 8px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8px;
+        min-width: 720px;
+      }
+      th,
+      td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #f2f2f2;
+        text-align: left;
+        font-size: 0.95rem;
+      }
+      thead th {
+        background: linear-gradient(180deg, #fbfbfb, #f6f6f6);
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        cursor: pointer;
+      }
+      tr:hover {
+        background: #fbfbff;
+      }
+      tr:nth-child(even) {
+        background: #fbfbfb;
+      }
+      .badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-size: 12px;
+        color: #fff;
+      }
+      .badge.low {
+        background: #16a34a;
+      }
+      .badge.med {
+        background: #f59e0b;
+      }
+      .badge.high {
+        background: #dc2626;
+      }
+      .progress {
+        height: 8px;
+        background: #eee;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-top: 6px;
+      }
+      .progress > i {
+        display: block;
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+      }
+      .legend {
+        margin-top: 8px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .meta {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .chart-section {
+        background: #fff;
+        border: 1px solid #eef2f6;
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 12px;
+      }
+      .charts-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .chart-title {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 2px;
+        color: #111827;
+      }
+      .chart-subtitle {
+        font-size: 0.85rem;
+        color: #6b7280;
+        margin-bottom: 10px;
+      }
+      .chart-wrap {
+        position: relative;
+        height: 300px;
+      }
+      .chart-note {
+        margin-top: 8px;
+        font-size: 0.85rem;
+        color: #475569;
+      }
+      #downloadBtn {
+        margin-left: 8px;
+      }
+      @media (max-width: 720px) {
+        .table-wrap {
+          padding: 4px;
+        }
+        table {
+          min-width: 520px;
+        }
+        .chart-wrap {
+          height: 240px;
+        }
+        .charts-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Rapport d'Absenteisme — Téléversez le fichier Excel</h1>
+    <div class="card">
+      <label>Fichier Excel (.xls, .xlsx, .xlsm)</label>
+      <div
+        id="uploadZone"
+        class="upload-zone"
+        role="button"
+        tabindex="0"
+        aria-label="Zone de téléversement du fichier Excel"
+      >
+        <div class="upload-icon"><i class="fa-solid fa-file-arrow-up"></i></div>
+        <div id="uploadTitle" class="upload-title">
+          Glissez-déposez votre fichier ici
+        </div>
+        <div id="uploadSubtitle" class="upload-subtitle">
+          ou choisissez un fichier depuis votre appareil
+        </div>
+        <span id="uploadBtnLabel" class="upload-btn"
+          >Sélectionner un fichier</span
+        >
+        <div class="upload-spinner" aria-hidden="true"></div>
+      </div>
+      <input id="fileInput" type="file" accept=".xls,.xlsx,.xlsm" />
+      <div id="fileMeta" class="file-meta">Aucun fichier sélectionné.</div>
+      <div class="controls">
+        <label
+          >Filtrer:
+          <input id="filter" type="text" placeholder="Tapez nom ou fonction"
+        /></label>
+        <button id="downloadBtn">Télécharger CSV</button>
+      </div>
+      <div id="status" class="small">Aucun fichier chargé.</div>
+    </div>
+
+    <div id="report"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script>
+      const MONTHS_FR = [
+        "JANVIER",
+        "FEVRIER",
+        "MARS",
+        "AVRIL",
+        "MAI",
+        "JUIN",
+        "JUILLET",
+        "AOUT",
+        "AOÛT",
+        "SEPTEMBRE",
+        "OCTOBRE",
+        "NOVEMBRE",
+        "DECEMBRE",
+        "DÉCEMBRE",
+      ];
+      const fileInput = document.getElementById("fileInput");
+      const status = document.getElementById("status");
+      const reportWrap = document.getElementById("report");
+      const filterEl = document.getElementById("filter");
+      const downloadBtn = document.getElementById("downloadBtn");
+      const uploadZone = document.getElementById("uploadZone");
+      const fileMeta = document.getElementById("fileMeta");
+      const uploadTitle = document.getElementById("uploadTitle");
+      const uploadSubtitle = document.getElementById("uploadSubtitle");
+      const uploadBtnLabel = document.getElementById("uploadBtnLabel");
+
+      let currentData = [];
+      let currentSheetName = "";
+      let topAbsChart = null;
+      let repartitionChart = null;
+
+      function normalize(s) {
+        if (s == null) return "";
+        return String(s)
+          .toUpperCase()
+          .normalize("NFD")
+          .replace(/\p{Diacritic}/gu, "")
+          .trim();
+      }
+
+      function findHeaderRow(rows) {
+        const tokens = [
+          "NOMS",
+          "NOM",
+          "PRENOMS",
+          "PRENOM",
+          "PRENOM(S)",
+          "NOM COMPLET",
+          "NOM & PRENOM",
+          "FONCTION",
+          "FONCTIONS",
+          "EMPLOYE",
+        ];
+        for (let i = 0; i < Math.min(rows.length, 20); i++) {
+          const row = rows[i].map((c) => normalize(c)).join(" ");
+          if (tokens.some((t) => row.includes(t))) return i;
+        }
+        return null;
+      }
+
+      function toObjects(rows, headerIdx) {
+        const header = rows[headerIdx].map(
+          (h) => normalize(h) || "COL" + rows[headerIdx].indexOf(h),
+        );
+        const objs = [];
+        for (let r = headerIdx + 1; r < rows.length; r++) {
+          const row = rows[r];
+          if (
+            row.every(
+              (c) => c === undefined || c === null || String(c).trim() === "",
+            )
+          )
+            continue;
+          const obj = {};
+          for (let c = 0; c < header.length; c++) obj[header[c]] = row[c];
+          objs.push(obj);
+        }
+        return { header, objs };
+      }
+
+      function findCol(header, keywords) {
+        keywords = keywords.map((k) => normalize(k));
+        for (let h of header) {
+          if (h === undefined || h === null) continue;
+          const hn = normalize(h);
+          for (let k of keywords) {
+            if (hn.includes(k)) return h;
+          }
+        }
+        return null;
+      }
+
+      function formatFileSize(bytes) {
+        if (!bytes) return "0 Ko";
+        const units = ["o", "Ko", "Mo", "Go"];
+        let value = bytes;
+        let idx = 0;
+        while (value >= 1024 && idx < units.length - 1) {
+          value /= 1024;
+          idx++;
+        }
+        return `${value.toFixed(value >= 10 || idx === 0 ? 0 : 1)} ${units[idx]}`;
+      }
+
+      function setUploadLoading(isLoading) {
+        uploadZone.classList.toggle("loading", isLoading);
+        if (isLoading) {
+          uploadTitle.textContent = "Traitement du fichier en cours...";
+          uploadSubtitle.textContent = "Patientez quelques instants";
+          uploadBtnLabel.textContent = "Lecture...";
+        } else {
+          uploadTitle.textContent = "Glissez-déposez votre fichier ici";
+          uploadSubtitle.textContent =
+            "ou choisissez un fichier depuis votre appareil";
+          uploadBtnLabel.textContent = "Sélectionner un fichier";
+        }
+      }
+
+      function computeReport(objs, header) {
+        // map columns
+        const nameCol =
+          findCol(header, ["NOMS", "NOM", "NOM COMPLET", "NOM & PRENOM"]) ||
+          findCol(header, ["EMPLOYE"]);
+        const prenomCol = findCol(header, ["PRENOM", "PRENOMS", "PRENOM(S)"]);
+        const fonctionCol = findCol(header, [
+          "FONCTION",
+          "FONCTIONS",
+          "POSTE",
+          "SERVICE",
+        ]);
+        const presenceCol = findCol(header, [
+          "PRESENCE",
+          "PRESENT",
+          "JOURS PRESENCE",
+          "JOURS_PRESENTS",
+          "PRESENTS",
+        ]);
+        const absenceCol = findCol(header, [
+          "ABSENCE",
+          "ABSENCES",
+          "JOURS ABSENTS",
+          "JOURS_ABSENCE",
+        ]);
+        const congeCol = findCol(header, [
+          "CONGE",
+          "CONGES",
+          "CONGE PAYE",
+          "CONGEPAYE",
+          "CONGE_PAYE",
+          "CONGES PAYES",
+          "CP",
+        ]);
+        const permissionCol = findCol(header, [
+          "PERMISSION",
+          "PERMISSIONS",
+          "PERM",
+          "PERMS",
+          "PERMISSION ACCORDEE",
+        ]);
+        const arretCol = findCol(header, [
+          "ARRET",
+          "ARRETS",
+          "ARRET MALADIE",
+          "ARRET_MALADIE",
+          "ARRET MAL",
+          "ARRET_MAL",
+        ]);
+
+        const rows = objs.map((o) => {
+          const tonum = (v) => {
+            const n = parseFloat(String(v).replace(",", "."));
+            return isNaN(n) ? 0 : n;
+          };
+          const presence = presenceCol ? tonum(o[presenceCol]) : 0;
+          const absence = absenceCol ? tonum(o[absenceCol]) : 0;
+          const conge = congeCol ? tonum(o[congeCol]) : 0;
+          const permission = permissionCol ? tonum(o[permissionCol]) : 0;
+          const arret = arretCol ? tonum(o[arretCol]) : 0;
+          const denom = presence + absence + conge + permission + arret || 1;
+          const taux = ((absence + arret) / denom) * 100;
+          return {
+            nom: ((o[nameCol] || "") + " " + (o[prenomCol] || "")).trim(),
+            fonction: o[fonctionCol] || "",
+            presence: Math.round(presence),
+            absence: Math.round(absence),
+            conge_paye: Math.round(conge),
+            permission: Math.round(permission),
+            arret_mal: Math.round(arret),
+            taux_absenteisme_pct: Math.round(taux * 100) / 100,
+          };
+        });
+        return rows;
+      }
+
+      function renderChartSection(container, data) {
+        const chartsGrid = document.createElement("div");
+        chartsGrid.className = "charts-grid";
+
+        const section = document.createElement("div");
+        section.className = "chart-section";
+
+        const title = document.createElement("div");
+        title.className = "chart-title";
+        title.textContent = "Graphique explicatif du rapport";
+        section.appendChild(title);
+
+        const subtitle = document.createElement("div");
+        subtitle.className = "chart-subtitle";
+        subtitle.textContent =
+          "Top 10 des employés avec le taux d'absentéisme le plus élevé.";
+        section.appendChild(subtitle);
+
+        const chartWrap = document.createElement("div");
+        chartWrap.className = "chart-wrap";
+        const canvas = document.createElement("canvas");
+        chartWrap.appendChild(canvas);
+        section.appendChild(chartWrap);
+
+        const note = document.createElement("div");
+        note.className = "chart-note";
+
+        const sorted = data
+          .slice()
+          .sort((a, b) => b.taux_absenteisme_pct - a.taux_absenteisme_pct)
+          .slice(0, 10);
+
+        const labels = sorted.map((r) => {
+          const txt = String(r.nom || "Sans nom").trim();
+          return txt.length > 28 ? txt.slice(0, 28) + "…" : txt;
+        });
+        const values = sorted.map((r) => Number(r.taux_absenteisme_pct) || 0);
+
+        const avg =
+          data.reduce(
+            (sum, row) => sum + (Number(row.taux_absenteisme_pct) || 0),
+            0,
+          ) / (data.length || 1);
+        const high = data.filter(
+          (r) => (Number(r.taux_absenteisme_pct) || 0) >= 10,
+        ).length;
+        note.textContent = `Moyenne globale: ${avg.toFixed(1)}% — Employés à 10% ou plus: ${high}/${data.length}`;
+        section.appendChild(note);
+
+        chartsGrid.appendChild(section);
+
+        const section2 = document.createElement("div");
+        section2.className = "chart-section";
+
+        const title2 = document.createElement("div");
+        title2.className = "chart-title";
+        title2.textContent = "Répartition globale des jours";
+        section2.appendChild(title2);
+
+        const subtitle2 = document.createElement("div");
+        subtitle2.className = "chart-subtitle";
+        subtitle2.textContent =
+          "Vue globale des catégories présence, absence, congé, permission et arrêt.";
+        section2.appendChild(subtitle2);
+
+        const chartWrap2 = document.createElement("div");
+        chartWrap2.className = "chart-wrap";
+        const canvas2 = document.createElement("canvas");
+        chartWrap2.appendChild(canvas2);
+        section2.appendChild(chartWrap2);
+
+        const totals = {
+          presence: data.reduce((sum, r) => sum + (Number(r.presence) || 0), 0),
+          absence: data.reduce((sum, r) => sum + (Number(r.absence) || 0), 0),
+          conge: data.reduce((sum, r) => sum + (Number(r.conge_paye) || 0), 0),
+          permission: data.reduce(
+            (sum, r) => sum + (Number(r.permission) || 0),
+            0,
+          ),
+          arret: data.reduce((sum, r) => sum + (Number(r.arret_mal) || 0), 0),
+        };
+
+        const totalVolume =
+          totals.presence +
+          totals.absence +
+          totals.conge +
+          totals.permission +
+          totals.arret;
+
+        const note2 = document.createElement("div");
+        note2.className = "chart-note";
+        note2.textContent = `Volume total de jours comptabilisés: ${totalVolume}`;
+        section2.appendChild(note2);
+
+        chartsGrid.appendChild(section2);
+        container.appendChild(chartsGrid);
+
+        if (topAbsChart) {
+          topAbsChart.destroy();
+          topAbsChart = null;
+        }
+        if (repartitionChart) {
+          repartitionChart.destroy();
+          repartitionChart = null;
+        }
+
+        topAbsChart = new Chart(canvas.getContext("2d"), {
+          type: "bar",
+          data: {
+            labels,
+            datasets: [
+              {
+                label: "Taux d'absentéisme (%)",
+                data: values,
+                backgroundColor: "rgba(96, 165, 250, 0.6)",
+                borderColor: "#60a5fa",
+                borderWidth: 1,
+                borderRadius: 6,
+              },
+            ],
+          },
+          options: {
+            indexAxis: "y",
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+            },
+            scales: {
+              x: {
+                beginAtZero: true,
+                max: 100,
+                ticks: {
+                  callback: (v) => `${v}%`,
+                },
+              },
+              y: {
+                grid: {
+                  display: false,
+                },
+              },
+            },
+          },
+        });
+
+        const repartitionLabels = [
+          "Présence",
+          "Absence",
+          "Congé payé",
+          "Permission",
+          "Arrêt",
+        ];
+        const repartitionColors = [
+          "#22c55e",
+          "#ef4444",
+          "#eab308",
+          "#0ea5e9",
+          "#a855f7",
+        ];
+
+        repartitionChart = new Chart(canvas2.getContext("2d"), {
+          type: "doughnut",
+          data: {
+            labels: repartitionLabels,
+            datasets: [
+              {
+                data: [
+                  totals.presence,
+                  totals.absence,
+                  totals.conge,
+                  totals.permission,
+                  totals.arret,
+                ],
+                backgroundColor: repartitionColors,
+                borderColor: repartitionColors,
+                borderWidth: 1,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "bottom",
+              },
+              tooltip: {
+                callbacks: {
+                  label: (context) => {
+                    const value = Number(context.raw) || 0;
+                    const pct = totalVolume
+                      ? ((value / totalVolume) * 100).toFixed(1)
+                      : "0.0";
+                    return `${context.label}: ${value} jours (${pct}%)`;
+                  },
+                },
+              },
+            },
+          },
+        });
+      }
+
+      function renderTable(data) {
+        currentData = data;
+        const cols = [
+          "nom",
+          "fonction",
+          "presence",
+          "absence",
+          "conge_paye",
+          "permission",
+          "arret_mal",
+          "taux_absenteisme_pct",
+        ];
+        const wrap = reportWrap;
+        wrap.innerHTML = "";
+        const headerRow = document.createElement("div");
+        headerRow.className = "meta";
+        const h = document.createElement("h2");
+        h.textContent = "Feuille: " + currentSheetName;
+        headerRow.appendChild(h);
+        const stats = document.createElement("div");
+        stats.className = "small";
+        stats.textContent = data.length + " enregistrements";
+        headerRow.appendChild(stats);
+        wrap.appendChild(headerRow);
+
+        if (data.length) {
+          renderChartSection(wrap, data);
+        }
+
+        const tableWrap = document.createElement("div");
+        tableWrap.className = "table-wrap";
+        const table = document.createElement("table");
+        const thead = document.createElement("thead");
+        const thr = document.createElement("tr");
+        cols.forEach((c) => {
+          const th = document.createElement("th");
+          th.textContent = c;
+          th.onclick = () => sortBy(c);
+          thr.appendChild(th);
+        });
+        thead.appendChild(thr);
+        table.appendChild(thead);
+        const tbody = document.createElement("tbody");
+        data.forEach((r) => {
+          const tr = document.createElement("tr");
+          cols.forEach((c) => {
+            const td = document.createElement("td");
+            td.textContent = r[c];
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+        tableWrap.appendChild(table);
+        wrap.appendChild(tableWrap);
+        // legend
+        const legend = document.createElement("div");
+        legend.className = "legend";
+        legend.innerHTML =
+          '<strong>Légende:</strong> <span class="badge low">&nbsp;</span> < 3% &nbsp; <span class="badge med">&nbsp;</span> 3–10% &nbsp; <span class="badge high">&nbsp;</span> ≥10%';
+        wrap.appendChild(legend);
+        status.textContent = data.length + " enregistrements affichés.";
+      }
+
+      function sortBy(col) {
+        const sorted = currentData.slice().sort((a, b) => {
+          const na = parseFloat(a[col]);
+          const nb = parseFloat(b[col]);
+          if (!isNaN(na) && !isNaN(nb)) return na - nb;
+          return String(a[col]).localeCompare(String(b[col]));
+        });
+        renderTable(sorted);
+      }
+
+      filterEl.addEventListener("input", () => {
+        const q = filterEl.value.trim().toLowerCase();
+        if (!q) renderTable(currentData);
+        else
+          renderTable(
+            currentData.filter(
+              (r) =>
+                (r.nom || "").toLowerCase().includes(q) ||
+                (r.fonction || "").toLowerCase().includes(q),
+            ),
+          );
+      });
+
+      downloadBtn.addEventListener("click", () => {
+        if (!currentData.length) return alert("Aucune donnée à télécharger");
+        const cols = [
+          "nom",
+          "fonction",
+          "presence",
+          "absence",
+          "conge_paye",
+          "permission",
+          "arret_mal",
+          "taux_absenteisme_pct",
+        ];
+        const csv = [cols.join(",")]
+          .concat(
+            currentData.map((r) =>
+              cols
+                .map((c) => '"' + String(r[c] || "").replace(/"/g, '""') + '"')
+                .join(","),
+            ),
+          )
+          .join("\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "report_" + currentSheetName + ".csv";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      });
+
+      function processFile(f) {
+        if (!f) return;
+        fileMeta.textContent = `Fichier sélectionné: ${f.name} (${formatFileSize(f.size)})`;
+        status.textContent = "Lecture du fichier...";
+        setUploadLoading(true);
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          try {
+            const data = new Uint8Array(ev.target.result);
+            const wb = XLSX.read(data, { type: "array" });
+            // find month sheet
+            let sheetName = null;
+            for (const s of wb.SheetNames) {
+              if (MONTHS_FR.includes(normalize(s))) {
+                sheetName = s;
+                break;
+              }
+            }
+            if (!sheetName) {
+              for (const s of wb.SheetNames) {
+                if (normalize(s).includes("DECOMPTE")) {
+                  sheetName = s;
+                  break;
+                }
+              }
+            }
+            if (!sheetName) sheetName = wb.SheetNames[0];
+            currentSheetName = sheetName.replace(/\s+/g, "_");
+
+            const ws = wb.Sheets[sheetName];
+            const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true });
+            const headerIdx = findHeaderRow(rows) ?? 0;
+            const { header, objs } = toObjects(rows, headerIdx);
+            const report = computeReport(objs, header);
+            renderTable(report);
+          } catch (err) {
+            console.error(err);
+            status.textContent = "Erreur: " + err.message;
+          } finally {
+            setUploadLoading(false);
+          }
+        };
+        reader.onerror = () => {
+          status.textContent = "Erreur lecture du fichier";
+          setUploadLoading(false);
+        };
+        reader.readAsArrayBuffer(f);
+      }
+
+      fileInput.addEventListener("change", (e) => {
+        const f = e.target.files[0];
+        processFile(f);
+      });
+
+      uploadZone.addEventListener("click", () => fileInput.click());
+      uploadZone.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          fileInput.click();
+        }
+      });
+
+      ["dragenter", "dragover"].forEach((eventName) => {
+        uploadZone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          uploadZone.classList.add("dragover");
+        });
+      });
+
+      ["dragleave", "drop"].forEach((eventName) => {
+        uploadZone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          uploadZone.classList.remove("dragover");
+        });
+      });
+
+      uploadZone.addEventListener("drop", (e) => {
+        const f = e.dataTransfer?.files?.[0];
+        if (f) processFile(f);
+      });
+    </script>
+  </body>
+</html>
