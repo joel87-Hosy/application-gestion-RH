@@ -357,6 +357,49 @@
         cursor: not-allowed;
         opacity: 0.85;
       }
+      #downloadPptBtn {
+        margin-left: 8px;
+        white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border: 0;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #ffffff;
+        background: linear-gradient(135deg, #d94600, #ea580c);
+        box-shadow: 0 8px 18px rgba(233, 76, 21, 0.18);
+        cursor: pointer;
+        transition:
+          transform 0.18s ease,
+          box-shadow 0.18s ease,
+          filter 0.18s ease,
+          background 0.18s ease;
+      }
+      #downloadPptBtn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 20px rgba(233, 76, 21, 0.28);
+        filter: brightness(1.03);
+      }
+      #downloadPptBtn:active {
+        transform: translateY(0);
+        box-shadow: 0 6px 14px rgba(233, 76, 21, 0.25);
+      }
+      #downloadPptBtn:focus-visible {
+        outline: none;
+        box-shadow:
+          0 0 0 3px rgba(234, 88, 12, 0.18),
+          0 10px 20px rgba(233, 76, 21, 0.3);
+      }
+      #downloadPptBtn:disabled {
+        background: #94a3b8;
+        box-shadow: none;
+        cursor: not-allowed;
+        opacity: 0.85;
+      }
       @media (max-width: 992px) {
         .charts-grid {
           grid-template-columns: 1fr;
@@ -487,7 +530,7 @@
   <body>
     <header class="site-header">
       <img src="assets/nouveau-logo-itc.png" alt="Logo" class="site-logo" />
-      <h1>Rapport d'Absenteisme — Téléversez le fichier Excel</h1>
+      <h1>MODULE DE GESTION RESSOURCES HUMAINES</h1>
       <button
         id="shadowToggle"
         class="btn btn-outline-secondary btn-sm shadow-toggle"
@@ -527,6 +570,10 @@
         <button id="downloadBtn">
           <i class="fa-solid fa-download" aria-hidden="true"></i>
           <span>Télécharger CSV</span>
+        </button>
+        <button id="downloadPptBtn" title="Télécharger PowerPoint">
+          <i class="fa-solid fa-file-powerpoint" aria-hidden="true"></i>
+          <span>Télécharger PPTX</span>
         </button>
       </div>
       <div id="status" class="small">Aucun fichier chargé.</div>
@@ -1066,6 +1113,219 @@
         a.remove();
         URL.revokeObjectURL(url);
       });
+
+      const downloadPptBtn = document.getElementById("downloadPptBtn");
+      if (downloadPptBtn) {
+        downloadPptBtn.addEventListener("click", async () => {
+          if (!currentData.length) return alert("Aucune donnée à exporter");
+          try {
+            const pptx = new PptxGenJS();
+            const dateStr = new Date().toLocaleString("fr-FR");
+
+            // prepare counts to compute total slides
+            const rowsPerSlide = 22;
+            const tableSlidesCount = Math.max(
+              1,
+              Math.ceil(currentData.length / rowsPerSlide),
+            );
+            const chartsPresent = Boolean(topAbsChart || repartitionChart);
+            const totalSlides =
+              1 + (chartsPresent ? 1 : 0) + 1 + 1 + tableSlidesCount; // title + charts? + summary + top10 + tables
+            let slideIndex = 0;
+
+            function addFooter(slide) {
+              slideIndex += 1;
+              slide.addText(
+                `Généré: ${dateStr} — Page ${slideIndex}/${totalSlides}`,
+                {
+                  x: 6.8,
+                  y: 6.9,
+                  fontSize: 8,
+                  color: "666666",
+                  align: pptx.AlignH.right,
+                },
+              );
+            }
+
+            // Title
+            const titleSlide = pptx.addSlide();
+            titleSlide.addText("Rapport d'absenteisme", {
+              x: 0.5,
+              y: 0.5,
+              fontSize: 28,
+              bold: true,
+              color: "363636",
+            });
+            titleSlide.addText(
+              `Feuille: ${currentSheetName}\n${currentData.length} enregistrements`,
+              { x: 0.5, y: 1.3, fontSize: 12, color: "5a5a5a" },
+            );
+            addFooter(titleSlide);
+
+            // Charts slide
+            if (chartsPresent) {
+              const chartsSlide = pptx.addSlide();
+              chartsSlide.addText("Graphiques", {
+                x: 0.5,
+                y: 0.3,
+                fontSize: 18,
+                bold: true,
+              });
+              const imgY = 0.8;
+              if (topAbsChart) {
+                try {
+                  const img1 = topAbsChart.toBase64Image();
+                  chartsSlide.addImage({
+                    data: img1,
+                    x: 0.4,
+                    y: imgY,
+                    w: 5.2,
+                    h: 3.6,
+                  });
+                } catch (e) {
+                  console.warn("Impossible d'extraire topAbsChart", e);
+                }
+              }
+              if (repartitionChart) {
+                try {
+                  const img2 = repartitionChart.toBase64Image();
+                  chartsSlide.addImage({
+                    data: img2,
+                    x: 5.8,
+                    y: imgY,
+                    w: 3.6,
+                    h: 3.6,
+                  });
+                } catch (e) {
+                  console.warn("Impossible d'extraire repartitionChart", e);
+                }
+              }
+              addFooter(chartsSlide);
+            }
+
+            // Top 10 slide
+            const top10 = currentData
+              .slice()
+              .sort(
+                (a, b) =>
+                  (Number(b.taux_absenteisme_pct) || 0) -
+                  (Number(a.taux_absenteisme_pct) || 0),
+              )
+              .slice(0, 10);
+            const top10Slide = pptx.addSlide();
+            top10Slide.addText("Top 10 employés — Taux d'absentéisme", {
+              x: 0.5,
+              y: 0.3,
+              fontSize: 18,
+              bold: true,
+            });
+            const topHeaders = [
+              {
+                text: "Nom",
+                options: { bold: true, fill: { color: "F3F4F6" } },
+              },
+              {
+                text: "Fonction",
+                options: { bold: true, fill: { color: "F3F4F6" } },
+              },
+              {
+                text: "Absence",
+                options: { bold: true, fill: { color: "F3F4F6" } },
+              },
+              {
+                text: "Taux (%)",
+                options: { bold: true, fill: { color: "F3F4F6" } },
+              },
+            ];
+            const topRows = top10.map((r) => [
+              String(r.nom || ""),
+              String(r.fonction || ""),
+              String(r.absence || ""),
+              String(r.taux_absenteisme_pct || ""),
+            ]);
+            top10Slide.addTable([topHeaders, ...topRows], {
+              x: 0.4,
+              y: 0.8,
+              w: 9.2,
+              colW: [4, 3.5, 1, 1],
+              fontSize: 10,
+            });
+            addFooter(top10Slide);
+
+            // Summary slide with totals
+            const totals = currentData.reduce(
+              (acc, r) => {
+                acc.presence += Number(r.presence) || 0;
+                acc.absence += Number(r.absence) || 0;
+                acc.conge += Number(r.conge_paye) || 0;
+                acc.permission += Number(r.permission) || 0;
+                acc.arret += Number(r.arret_mal) || 0;
+                return acc;
+              },
+              { presence: 0, absence: 0, conge: 0, permission: 0, arret: 0 },
+            );
+            const summarySlide = pptx.addSlide();
+            summarySlide.addText("Résumé", {
+              x: 0.5,
+              y: 0.3,
+              fontSize: 18,
+              bold: true,
+            });
+            summarySlide.addText(
+              `Présence: ${totals.presence} jours\nAbsence: ${totals.absence} jours\nCongé payé: ${totals.conge} jours\nPermission: ${totals.permission} jours\nArrêt maladie: ${totals.arret} jours`,
+              { x: 0.6, y: 0.9, fontSize: 12, color: "333333" },
+            );
+            addFooter(summarySlide);
+
+            // Table slides: paginated with header styling
+            const cols = [
+              { key: "nom", label: "Nom", w: 4 },
+              { key: "fonction", label: "Fonction", w: 3.5 },
+              { key: "presence", label: "Présence", w: 1 },
+              { key: "absence", label: "Absence", w: 1 },
+              { key: "conge_paye", label: "Congé payé", w: 1 },
+              { key: "permission", label: "Permission", w: 1 },
+              { key: "arret_mal", label: "Arrêt maladie", w: 1 },
+              { key: "taux_absenteisme_pct", label: "Taux (%)", w: 1 },
+            ];
+            for (let i = 0; i < currentData.length; i += rowsPerSlide) {
+              const chunk = currentData.slice(i, i + rowsPerSlide);
+              const headerRow = cols.map((c) => ({
+                text: c.label,
+                options: { bold: true, fill: { color: "F3F4F6" } },
+              }));
+              const tableData = [headerRow];
+              chunk.forEach((r) => {
+                tableData.push(
+                  cols.map((c) => ({ text: String(r[c.key] ?? "") })),
+                );
+              });
+              const slide = pptx.addSlide();
+              slide.addText(
+                `Données (${i + 1}–${Math.min(i + rowsPerSlide, currentData.length)})`,
+                { x: 0.5, y: 0.3, fontSize: 14, bold: true },
+              );
+              slide.addTable(tableData, {
+                x: 0.4,
+                y: 0.8,
+                w: 9.2,
+                colW: cols.map((c) => c.w),
+                fontSize: 10,
+                rowH: 0.35,
+              });
+              addFooter(slide);
+            }
+
+            const safeName = `report_${currentSheetName}_${new Date().toISOString().slice(0, 10)}`;
+            await pptx.writeFile({ fileName: `${safeName}.pptx` });
+          } catch (err) {
+            console.error(err);
+            alert(
+              "Erreur lors de la génération du PPTX: " + (err.message || err),
+            );
+          }
+        });
+      }
 
       function processFile(f) {
         if (!f) return;
